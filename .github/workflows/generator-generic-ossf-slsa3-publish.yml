@@ -15,7 +15,8 @@ on:
   workflow_dispatch:
   release:
     types: [created]
-
+env:
+     UNTRUSTED_SUBJECTS: ${{ needs.build.outputs.subjects }}
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -75,5 +76,4 @@ jobs:
       compile-generator: true
       base64-subjects: "${{ needs.build.outputs.digests }}"
       upload-assets: true # Optional: Upload to a new release
-    env:
-      UNTRUSTED_SUBJECTS: ${{ needs.build.outputs.subjects }}
+ 
