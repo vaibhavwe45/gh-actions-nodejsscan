@@ -54,6 +54,7 @@ jobs:
           # Generate the subjects (base64 encoded).
           echo "hashes=$(sha256sum $files | base64 -w0)" >> "${GITHUB_OUTPUT}"
           echo "subjects=$subjects" >> "${GITHUB_OUTPUT}"
+          echo "::set-output name=subjects::$subjects"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -74,4 +75,5 @@ jobs:
       compile-generator: true
       base64-subjects: "${{ needs.build.outputs.digests }}"
       upload-assets: true # Optional: Upload to a new release
+
  
