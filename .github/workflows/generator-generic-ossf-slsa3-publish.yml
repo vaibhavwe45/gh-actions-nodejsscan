@@ -16,7 +16,7 @@ on:
   release:
     types: [created]
 env:
-     UNTRUSTED_SUBJECTS: ${{ needs.build.outputs.subjects }}
+     UNTRUSTED_SUBJECTS: "${{ steps.hash.outputs.subjects }}"
 jobs:
   build:
     runs-on: ubuntu-latest
