@@ -51,8 +51,18 @@ jobs:
 
           # List the artifacts the provenance will refer to.
           files=$(ls artifact*)
+          subjects="my-docker-image:latest, my-executable, my-library-v1.2.3"  # Add your subjects here
           # Generate the subjects (base64 encoded).
           echo "hashes=$(sha256sum $files | base64 -w0)" >> "${GITHUB_OUTPUT}"
+          echo "subjects=$subjects" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: my-artifacts
+          path: |
+            artifact1
+            artifact2
 
   provenance:
     needs: [build]
