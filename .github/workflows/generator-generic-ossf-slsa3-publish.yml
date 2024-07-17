@@ -66,3 +66,4 @@ jobs:
       private-repository: true
       base64-subjects: "${{ needs.build.outputs.digests }}"
       upload-assets: true # Optional: Upload to a new release
+      provenance-name: "provenance.intoto.jsonl"
