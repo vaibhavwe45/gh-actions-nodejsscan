@@ -5,71 +5,36 @@ on:
     types: [created]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    outputs:
-      hash: ${{ steps.hash.outputs.hash }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run build
-      # Generate hashes used for provenance
-      - name: generate hash
-        id: hash
-        run: cd dist && echo "hash=$(sha256sum * | base64 -w0)" >> $GITHUB_OUTPUT
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: ./dist
+  # build job etc. ...
 
-  provenance:
-    needs: [build]
-    permissions:
-      actions: read
-      id-token: write
-      contents: write
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
-    with:
-      base64-subjects: ${{ needs.build.outputs.hash }}
-
-  create-release:
-    needs: [provenance]
+  publish:
+    # needs: [build]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - uses: actions/download-artifact@v4
-      - name: create release
-        run: >
-          gh release create --draft --repo ${{ github.repository }}
-          ${{ github.ref_name }}
-          *.intoto.jsonl/* dist/*
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Setup Node
+        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
+        with:
+          node-version: 18
+          registry-url: "https://registry.npmjs.org"
 
-  publish-npm:
-    needs: [provenance]
-    environment:
-      name: publish
-      url: https://www.npmjs.com/package/${{ github.event.repository.name }}
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Download tarball
+        uses: slsa-framework/slsa-github-generator/actions/nodejs/secure-package-download@v2.0.0
         with:
-          node-version: '18'
-          registry-url: 'https://registry.npmjs.org'
-      - uses: actions/download-artifact@v4
+          name: ${{ needs.build.outputs.package-download-name }}
+          path: ${{ needs.build.outputs.package-name }}
+          sha256: ${{ needs.build.outputs.package-download-sha256 }}
+
+      - name: Download provenance
+        uses: slsa-framework/slsa-github-generator/actions/nodejs/secure-attestations-download@v2.0.0
         with:
-          name: dist
-          path: dist
-      - run: npm ci
-      - run: npm publish
+          name: ${{ needs.build.outputs.provenance-download-name }}
+          path: "attestations"
+          sha256: ${{ needs.build.outputs.provenance-download-sha256 }}
+
+      - name: Publish the package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TARBALL_PATH: "${{ needs.build.outputs.package-name }}"
+          PROVENANCE_PATH: "./attestations/${{ needs.build.outputs.provenance-name }}"
+        run: |
+          npm publish "${TARBALL_PATH}" --access=public --provenance-file="${PROVENANCE_PATH}"
